@@ -1430,7 +1430,7 @@ const ak_uint64 crc64_table[512] = {
     ak_uint8 *prev_res = cx->sigma;
 
     // printf("iteration input: ");
-    // printf(ak_ptr_to_hexstr(prev_res, 4, ak_true));
+    // printf(ak_ptr_to_hexstr(prev_res, 4, ak_false));
     // printf("\n");
 
     for (size_t i = 0; i < 4; i++) {
@@ -1447,7 +1447,7 @@ const ak_uint64 crc64_table[512] = {
     for (size_t i = 0; i < 4; i++) {cx->sigma[i] = new_res[i];}
 
     // printf("iteration output: ");
-    // printf(ak_ptr_to_hexstr(new_res, 4, ak_true));
+    // printf(ak_ptr_to_hexstr(new_res, 4, ak_false));
     // printf("\n\n");
   }
 
@@ -1458,26 +1458,24 @@ const ak_uint64 crc64_table[512] = {
     ak_uint8 *prev_res = cx->sigma;
     ak_uint32 prev_res_32 = (ak_uint32) (*(prev_res + 7));
 
-    prev_res_32 = prev_res_32 | 0xFF00;
+    prev_res_32 = prev_res_32 | ((*(prev_res + 6)) * 256);
 
     printf("iteration input: ");
-    printf(ak_ptr_to_hexstr(prev_res, 8, ak_true));
+    printf(ak_ptr_to_hexstr(prev_res, 8, ak_false));
     printf("\n");
 
+    printf("crc: %x\n", prev_res_32);
+    // printf("byte: %x\n", *data);
+    // printf("(crc^byte) & 511: %x\n", (prev_res_32 ^ (*data)) & 511);
+    // printf("crc_table item: %llx\n", (crc64_table[(prev_res_32 ^ (*data)) & 511]));
+     
     for (size_t i = 0; i < 8; i++) {
-      printf("iteration %lu: ", i);
-      printf("item from table-{%x, ", *(prev_res + 7));
-      printf("%x, ", *data);
-      printf("%x} ", (prev_res_32 ^ (*data)) & 511);
-      printf("(%x ^ ", (prev_res-1)[i]);
-      printf("%llx) => ", (crc64_table[(*(prev_res + 7) ^ *data) & 511] >> ((7 - i) * 8) & 0xFF));
-      printf("%llx\n", (prev_res -1)[i] ^ ((crc64_table[(*(prev_res + 7) ^ *data) & 511]) >> ((7 - i) * 8) & 0xFF));
-      new_res[i] = (prev_res - 1)[i] ^ ((crc64_table[(*(prev_res + 7) ^ *data) & 511]) >> ((7 - i) * 8) & 0xFF);
+     new_res[i] = (prev_res - 1)[i] ^ ((crc64_table[(prev_res_32 ^ (*data)) & 511]) >> ((7 - i) * 8) & 0xFF);
     };
     for (size_t i = 0; i < 8; i++) {cx->sigma[i] = new_res[i];}
 
     printf("iteration output: ");
-    printf(ak_ptr_to_hexstr(new_res, 8, ak_true));
+    printf(ak_ptr_to_hexstr(new_res, 8, ak_false));
     printf("\n\n");
   }
   

@@ -1429,33 +1429,57 @@ const ak_uint64 crc64_table[512] = {
     ak_crc cx = ( ak_crc ) crcctx;
     ak_uint8 *prev_res = cx->sigma;
 
-    printf("iteration input: ");
-    printf(ak_ptr_to_hexstr(prev_res, 4, ak_true));
-    printf("\n");
+    // printf("iteration input: ");
+    // printf(ak_ptr_to_hexstr(prev_res, 4, ak_true));
+    // printf("\n");
 
-    // printf("%x\n", crc32_table[(*(result) ^ *data) & 255]);
+    for (size_t i = 0; i < 4; i++) {
+      // printf("iteration %lu: ", i);
+      // printf("item from table-{%x, ", *(prev_res + 3));
+      // printf("%x, ", *data);
+      // printf("%x} ", (*(prev_res + 3) ^ *data) & 255);
+      // printf("(%x ^ ", (prev_res-1)[i]);
+      // printf("%x) => ", (crc32_table[(*(prev_res + 3) ^ *data) & 255] >> ((3 - i) * 8) & 0xFF));
+      // printf("%x\n", (prev_res -1)[i] ^ ((crc32_table[(*(prev_res + 3) ^ *data) & 255]) >> ((3 - i) * 8) & 0xFF));
 
-
-    for (int i = 0; i < 4; i++) {
-      // printf("iteration %u: ", i);
-      // printf("%x ", (result-1)[i]);
-      // printf("%x ", (crc32_table[(*(result) ^ *data) & 255] >> ((3 - i) * 8) & 0xFF));
-      // printf("%x\n", (result -1)[i] ^ ((crc32_table[(*(result) ^ *data) & 255]) >> ((3 - i) * 8) & 0xFF));
-
-      new_res[i] = (prev_res - 1)[i] ^ ((crc32_table[(*(prev_res) ^ *data) & 255]) >> ((3 - i) * 8) & 0xFF);
-      // result[i] = curr[i];
+      new_res[i] = (prev_res - 1)[i] ^ ((crc32_table[(*(prev_res + 3) ^ *data) & 255]) >> ((3 - i) * 8) & 0xFF);
     };
+    for (size_t i = 0; i < 4; i++) {cx->sigma[i] = new_res[i];}
 
-    prev_res = new_res;
-
-    printf("iteration output: ");
-    printf(ak_ptr_to_hexstr(new_res, 4, ak_true));
-    printf("\n\n");
+    // printf("iteration output: ");
+    // printf(ak_ptr_to_hexstr(new_res, 4, ak_true));
+    // printf("\n\n");
   }
 
-  // else if (size == 64) {
-    
-  // }
+  else if (size == 64) {
+    ak_uint8 new_res[8];
+
+    ak_crc cx = ( ak_crc ) crcctx;
+    ak_uint8 *prev_res = cx->sigma;
+    ak_uint32 prev_res_32 = (ak_uint32) (*(prev_res + 7));
+
+    prev_res_32 = prev_res_32 | 0xFF00;
+
+    printf("iteration input: ");
+    printf(ak_ptr_to_hexstr(prev_res, 8, ak_true));
+    printf("\n");
+
+    for (size_t i = 0; i < 8; i++) {
+      printf("iteration %lu: ", i);
+      printf("item from table-{%x, ", *(prev_res + 7));
+      printf("%x, ", *data);
+      printf("%x} ", (prev_res_32 ^ (*data)) & 511);
+      printf("(%x ^ ", (prev_res-1)[i]);
+      printf("%llx) => ", (crc64_table[(*(prev_res + 7) ^ *data) & 511] >> ((7 - i) * 8) & 0xFF));
+      printf("%llx\n", (prev_res -1)[i] ^ ((crc64_table[(*(prev_res + 7) ^ *data) & 511]) >> ((7 - i) * 8) & 0xFF));
+      new_res[i] = (prev_res - 1)[i] ^ ((crc64_table[(*(prev_res + 7) ^ *data) & 511]) >> ((7 - i) * 8) & 0xFF);
+    };
+    for (size_t i = 0; i < 8; i++) {cx->sigma[i] = new_res[i];}
+
+    printf("iteration output: ");
+    printf(ak_ptr_to_hexstr(new_res, 8, ak_true));
+    printf("\n\n");
+  }
   
 }
 
@@ -1664,9 +1688,22 @@ static int ak_hash_context_crc_update( ak_pointer crcctx, const ak_pointer in, c
  return result;
 }
 
-static int ak_hash_context_crc_finalize( ak_pointer sctx,
+static int ak_hash_context_crc_finalize( ak_pointer crcctx,
                    const ak_pointer in, const size_t size, ak_pointer out, const size_t out_size )
 {
+  ak_crc cx = ( ak_crc ) crcctx;
+
+  if (cx->mode == 32){
+    for (int i = 0; i < 4; i++){
+      cx->sigma[i] ^= 0xFF;
+    }
+  } 
+  else if (cx->mode == 64) {
+    for (int i = 0; i < 8; i++){
+      cx->sigma[i] ^= 0xFF;
+    }
+  }
+
   return ak_error_ok;
 }
 
@@ -1956,11 +1993,6 @@ static int ak_hash_context_crc_finalize( ak_pointer sctx,
    0x5D, 0xD0, 0x51, 0x02, 0x6B, 0xB1, 0x49, 0xA4, 0x52, 0xFD, 0x84, 0xE5, 0xE5, 0x7B, 0x55, 0x00
  };
 
- static ak_uint8 crc32_testM1[32] = {
-   0x9D, 0x15, 0x1E, 0xEF, 0xD8, 0x59, 0x0B, 0x89, 0xDA, 0xA6, 0xBA, 0x6C, 0xB7, 0x4A, 0xF9, 0x27,
-   0x5D, 0xD0, 0x51, 0x02, 0x6B, 0xB1, 0x49, 0xA4, 0x52, 0xFD, 0x84, 0xE5, 0xE5, 0x7B, 0x55, 0x00
- };
-
  static ak_uint8 streebog256_testM2[32] = {
    0x9D, 0xD2, 0xFE, 0x4E, 0x90, 0x40, 0x9E, 0x5D, 0xA8, 0x7F, 0x53, 0x97, 0x6D, 0x74, 0x05, 0xB0,
    0xC0, 0xCA, 0xC6, 0x28, 0xFC, 0x66, 0x9A, 0x74, 0x1D, 0x50, 0x06, 0x3C, 0x55, 0x7E, 0x8F, 0x50
@@ -1982,13 +2014,6 @@ static int ak_hash_context_crc_finalize( ak_pointer sctx,
  };
 
  static ak_uint8 streebog512_testM1[64] = {
-   0x1B, 0x54, 0xD0, 0x1A, 0x4A, 0xF5, 0xB9, 0xD5, 0xCC, 0x3D, 0x86, 0xD6, 0x8D, 0x28, 0x54, 0x62,
-   0xB1, 0x9A, 0xBC, 0x24, 0x75, 0x22, 0x2F, 0x35, 0xC0, 0x85, 0x12, 0x2B, 0xE4, 0xBA, 0x1F, 0xFA,
-   0x00, 0xAD, 0x30, 0xF8, 0x76, 0x7B, 0x3A, 0x82, 0x38, 0x4C, 0x65, 0x74, 0xF0, 0x24, 0xC3, 0x11,
-   0xE2, 0xA4, 0x81, 0x33, 0x2B, 0x08, 0xEF, 0x7F, 0x41, 0x79, 0x78, 0x91, 0xC1, 0x64, 0x6F, 0x48
- };
-
- static ak_uint8 crc64_testM1[64] = {
    0x1B, 0x54, 0xD0, 0x1A, 0x4A, 0xF5, 0xB9, 0xD5, 0xCC, 0x3D, 0x86, 0xD6, 0x8D, 0x28, 0x54, 0x62,
    0xB1, 0x9A, 0xBC, 0x24, 0x75, 0x22, 0x2F, 0x35, 0xC0, 0x85, 0x12, 0x2B, 0xE4, 0xBA, 0x1F, 0xFA,
    0x00, 0xAD, 0x30, 0xF8, 0x76, 0x7B, 0x3A, 0x82, 0x38, 0x4C, 0x65, 0x74, 0xF0, 0x24, 0xC3, 0x11,
@@ -2268,124 +2293,6 @@ static int ak_hash_context_crc_finalize( ak_pointer sctx,
  /* уничтожаем контекст */
  lab_ex:
    ak_random_destroy( &rnd );
- lab_exit:
-   ak_hash_destroy( &ctx );
- return result;
-}
-
-bool_t ak_libakrypt_test_crc32( void )
-{
-  //ak_uint32 steps;
-  struct hash ctx; /* контекст функции хеширования */
-  // struct random rnd;
-  //size_t len, offset;
-  int error = ak_error_ok;
-  bool_t result = ak_true;
-  int audit = ak_log_get_level();
-
- /* буффер длиной 32 байта для получения результата */
-  ak_uint8 out[32]; 
-  //ak_uint8 out2[32],buffer[256], *ptr = buffer;
-
- /* инициализируем контекст функции хешиирования */
-  if(( error = ak_hash_create_crc32( &ctx )) != ak_error_ok ) {
-    ak_error_message( error, __func__ , "wrong initialization of streenbog512 context" );
-    return ak_false;
-  }
-
-  ak_hash_ptr( &ctx, crc32_testM1, 31, out, sizeof( out ));
-  if(( error = ak_error_get_value()) != ak_error_ok ) {
-    ak_error_message( error, __func__ , "invalid calculation of streebog512 code" );
-    result = ak_false;
-    goto lab_exit;
-  }
-
-  if(( result = ak_ptr_is_equal_with_log( out, streebog512_testM1, 64 )) != ak_true ) {
-    ak_error_message( ak_error_not_equal_data, __func__ ,
-                                             "the 1st test from GOST R 34.11-2012 is wrong" );
-    goto lab_exit;
-  }
-  if( audit >= ak_log_maximum )
-    ak_error_message( ak_error_ok, __func__ , "the 1st test from GOST R 34.11-2012 is Ok" );
-
- 
- /* хеширование пустого вектора */
-  ak_hash_ptr( &ctx, "", 0, out, sizeof( out ));
-  if(( error = ak_error_get_value()) != ak_error_ok ) {
-    ak_error_message( error, __func__ , "invalid calculation of streebog512 code" );
-    result = ak_false;
-    goto lab_exit;
-  }
-
-  if(( result = ak_ptr_is_equal_with_log( out, streebog512_testM3, 64 )) != ak_true ) {
-    ak_error_message( ak_error_not_equal_data, __func__ , "the zero length vector test is wrong" );
-    goto lab_exit;
-  }
-  if( audit >= ak_log_maximum )
-      ak_error_message( ak_error_ok, __func__ , "the zero length vector test is Ok" );
-
- /* уничтожаем контекст */
-//  lab_ex:
-//    ak_random_destroy( &rnd );
- lab_exit:
-   ak_hash_destroy( &ctx );
- return result;
-}
-
-bool_t ak_libakrypt_test_crc64( void )
-{
-  //ak_uint64 steps;
-  struct hash ctx; /* контекст функции хеширования */
-  // struct random rnd;
-  //size_t len, offset;
-  int error = ak_error_ok;
-  bool_t result = ak_true;
-  int audit = ak_log_get_level();
-
- /* буффер длиной 64 байта для получения результата */
-  ak_uint8 out[64];
-  // ak_uint8 out2[64], buffer[512], *ptr = buffer;
-
- /* инициализируем контекст функции хешиирования */
-  if(( error = ak_hash_create_crc64( &ctx )) != ak_error_ok ) {
-    ak_error_message( error, __func__ , "wrong initialization of streenbog512 context" );
-    return ak_false;
-  }
-
-  ak_hash_ptr( &ctx, crc64_testM1, 63, out, sizeof( out ));
-  if(( error = ak_error_get_value()) != ak_error_ok ) {
-    ak_error_message( error, __func__ , "invalid calculation of streebog512 code" );
-    result = ak_false;
-    goto lab_exit;
-  }
-
-  if(( result = ak_ptr_is_equal_with_log( out, streebog512_testM1, 64 )) != ak_true ) {
-    ak_error_message( ak_error_not_equal_data, __func__ ,
-                                             "the 1st test from GOST R 34.11-2012 is wrong" );
-    goto lab_exit;
-  }
-  if( audit >= ak_log_maximum )
-    ak_error_message( ak_error_ok, __func__ , "the 1st test from GOST R 34.11-2012 is Ok" );
-
- 
- /* хеширование пустого вектора */
-  ak_hash_ptr( &ctx, "", 0, out, sizeof( out ));
-  if(( error = ak_error_get_value()) != ak_error_ok ) {
-    ak_error_message( error, __func__ , "invalid calculation of streebog512 code" );
-    result = ak_false;
-    goto lab_exit;
-  }
-
-  if(( result = ak_ptr_is_equal_with_log( out, streebog512_testM3, 64 )) != ak_true ) {
-    ak_error_message( ak_error_not_equal_data, __func__ , "the zero length vector test is wrong" );
-    goto lab_exit;
-  }
-  if( audit >= ak_log_maximum )
-      ak_error_message( ak_error_ok, __func__ , "the zero length vector test is Ok" );
-
- /* уничтожаем контекст */
-//  lab_ex:
-//    ak_random_destroy( &rnd );
  lab_exit:
    ak_hash_destroy( &ctx );
  return result;

@@ -255,7 +255,8 @@ set ( ARITHMETIC_TESTS_LIST
       cmac02
       hmac
       kdf-state
-      crc
+      crc32
+      crc64
     )
 
 if( AK_TESTS_GMP )

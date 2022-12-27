@@ -179,11 +179,6 @@ extern "C" {
 /*! \brief Проверка корректной работы функции хеширования Стрибог-512 */
  dll_export bool_t ak_libakrypt_test_streebog512( void );
 
-/*! \brief Проверка корректной работы функции хеширования crc32 */
- dll_export bool_t ak_libakrypt_test_crc32( void );
-/*! \brief Проверка корректной работы функции хеширования crc64 */
- dll_export bool_t ak_libakrypt_test_crc64( void );
-
 /*! \brief Функция проверяет корректность реализации алгоритмов хэширования. */
  dll_export bool_t ak_libakrypt_test_hash_functions( void );
 /*! \brief Функция проверяет корректность реализации алгоритмов выработки имитовставки. */
@@ -873,7 +868,7 @@ extern "C" {
 /* ----------------------------------------------------------------------------------------------- */
  typedef struct crc {
  /*! \brief Вектор  \f$ \Sigma \f$ - контрольная сумма */
-  ak_uint8 sigma[4];
+  ak_uint8 sigma[8];
   /*! \brief Размерность шифрования*/
   size_t hsize;
  /*! \brief Размер блока выходных данных (хеш-кода)*/

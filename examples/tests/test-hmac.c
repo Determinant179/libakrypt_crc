@@ -33,12 +33,6 @@
    function( ptr = ak_oid_new_object( oid = ak_oid_find_by_name( "hmac-streebog512" )));
    ak_oid_delete_object( oid, ptr );
 
-  //  function( ptr = ak_oid_new_object( oid = ak_oid_find_by_name( "crc32" )));
-  //  ak_oid_delete_object( oid, ptr );
-
-  //  function( ptr = ak_oid_new_object( oid = ak_oid_find_by_name( "crc64" )));
-  //  ak_oid_delete_object( oid, ptr );
-
   /* проверяем выработку производной ключевой информации с исопльзованием указанных алгоритмов */
   // ak_skey_derive_key_to_ptr
 

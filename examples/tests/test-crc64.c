@@ -6,9 +6,7 @@
 size_t blok_size = 64;
 static ak_uint8 crc_M1_message[] = {0x48, 0x65, 0x6C, 0x6C, 0x6F};
 
-static ak_uint8 crc64_testM1[] = {0x36, 0x32, 0xC4, 0x18, 0x0E, 0x36, 0xE1, 0x91};
-
-// 36 32 c4 18 0e 36 e1 91
+ak_uint64 crc64_testM1 = 3905399434480378257;
 
 /* ----------------------------------------------------------------------------------------------- */
 int main( void )
@@ -16,7 +14,8 @@ int main( void )
   struct hash struct_hash;
   ak_uint8 out[4];
   struct_hash.data.crcctx.hsize = 5;
-  struct_hash.data.crcctx.mode = 64;
+  struct_hash.data.crcctx.seed = 0xC96C5795D7870F42;
+  struct_hash.data.crcctx.mask = 0xFFFFFFFFFFFFFFFF;
 
   int error = ak_error_ok;
 
@@ -36,13 +35,13 @@ int main( void )
   printf(ak_ptr_to_hexstr(crc_M1_message, 5, ak_true));
   printf("\n");
   printf("hash: ");
-  printf(ak_ptr_to_hexstr(struct_hash.data.crcctx.sigma, 8, ak_true));
+  printf("%llx", struct_hash.data.crcctx.sigma);
   printf("\n");
   printf("right value: ");
-  printf(ak_ptr_to_hexstr(crc64_testM1, 8, ak_true));
+  printf("%llx", crc64_testM1);
   printf("\n\n");
 
-  if(ak_ptr_is_equal_with_log( struct_hash.data.crcctx.sigma, crc64_testM1, 8 ) != ak_true ) {
+  if(struct_hash.data.crcctx.sigma != crc64_testM1) {
     printf("the 1st test crc64 is wrong\n" );
     ak_hash_destroy(&struct_hash);
     return EXIT_FAILURE;
